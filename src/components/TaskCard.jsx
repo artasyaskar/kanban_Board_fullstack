@@ -36,8 +36,17 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
           </button>
         </div>
       </div>
-      <div className="mt-3">
-        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+      <div className="mt-2 pr-14">
+        <span
+          className={
+            `inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap text-white shadow-sm ml-10 ` +
+            (task.status === 'todo'
+              ? 'bg-blue-500/85'
+              : task.status === 'inprogress'
+              ? 'bg-amber-500/90'
+              : 'bg-emerald-500/90')
+          }
+        >
           {task.status === 'todo' && 'To Do'}
           {task.status === 'inprogress' && 'In Progress'}
           {task.status === 'done' && 'Done'}

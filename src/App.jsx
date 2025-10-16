@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -7,27 +7,26 @@ import Header from './components/Header.jsx'
 import Column from './components/Column.jsx'
 import TaskCard from './components/TaskCard.jsx'
 import TaskModal from './components/TaskModal.jsx'
+import ColumnModal from './components/ColumnModal.jsx'
 import useTaskStore from './store/taskStore.js'
 
-const columns = [
-  { key: 'todo', label: 'To Do' },
-  { key: 'inprogress', label: 'In Progress' },
-  { key: 'done', label: 'Done' },
-]
-
 export default function App() {
-  const { tasks, fetchTasks, moveTaskLocal, moveTaskPersist, setDraggingTaskId } = useTaskStore()
+  const { tasks, fetchTasks, moveTaskLocal, moveTaskPersist, setDraggingTaskId, columns, fetchColumns } = useTaskStore()
   const [activeTask, setActiveTask] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [columnModalOpen, setColumnModalOpen] = useState(false)
 
   useEffect(() => {
     fetchTasks()
-  }, [fetchTasks])
+    fetchColumns()
+  }, [fetchTasks, fetchColumns])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
+
+  const columnKeys = useMemo(() => new Set((columns || []).map(c => c.key)), [columns])
 
   const handleDragStart = (event) => {
     const { active } = event
@@ -45,7 +44,7 @@ export default function App() {
     const activeTaskObj = tasks.find(t => t.id === activeTaskId)
     if (!activeTaskObj) return
 
-    if (overId === 'todo' || overId === 'inprogress' || overId === 'done') {
+    if (columnKeys.has(overId)) {
       if (activeTaskObj.status !== overId) {
         moveTaskLocal(activeTaskId, overId)
       }
@@ -58,7 +57,7 @@ export default function App() {
     if (!over) return
 
     const overId = over.id
-    if (overId === 'todo' || overId === 'inprogress' || overId === 'done') {
+    if (columnKeys.has(overId)) {
       await moveTaskPersist(active.id, overId)
     }
     setActiveTask(null)
@@ -88,7 +87,7 @@ export default function App() {
         <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full grad-accent opacity-10 blur-3xl" />
         <div className="absolute -bottom-24 -right-24 w-[26rem] h-[26rem] rounded-full grad-accent opacity-10 blur-3xl" />
       </div>
-      <Header onAddTask={openCreateModal} />
+      <Header onAddTask={openCreateModal} onAddColumn={() => setColumnModalOpen(true)} />
       <main className="mx-auto max-w-7xl px-4 pb-10">
         <DndContext
           sensors={sensors}
@@ -97,8 +96,8 @@ export default function App() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {columns.map((c) => (
+          <div className={`grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6`}> 
+            {(columns || []).map((c) => (
               <Column
                 key={c.key}
                 id={c.key}
@@ -122,6 +121,9 @@ export default function App() {
       <AnimatePresence>
         {modalOpen && (
           <TaskModal open={modalOpen} onClose={closeModal} task={editingTask} />
+        )}
+        {columnModalOpen && (
+          <ColumnModal open={columnModalOpen} onClose={() => setColumnModalOpen(false)} />
         )}
       </AnimatePresence>
 

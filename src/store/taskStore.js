@@ -3,11 +3,19 @@ import { supabase } from '../utils/supabaseClient'
 import toast from 'react-hot-toast'
 
 const table = 'tasks'
+const columnsTable = 'columns'
+
+const DEFAULT_COLUMNS = [
+  { key: 'todo', label: 'To Do', position: 1 },
+  { key: 'inprogress', label: 'In Progress', position: 2 },
+  { key: 'done', label: 'Done', position: 3 },
+]
 
 const useTaskStore = create((set, get) => ({
   tasks: [],
   loading: false,
   draggingTaskId: null,
+  columns: DEFAULT_COLUMNS, // fallback if columns table not available
 
   setDraggingTaskId: (id) => set({ draggingTaskId: id }),
 
@@ -23,6 +31,54 @@ const useTaskStore = create((set, get) => ({
       return
     }
     set({ tasks: data || [], loading: false })
+  },
+
+  // Columns CRUD
+  fetchColumns: async () => {
+    // Try fetch from Supabase; fallback to defaults if table missing
+    const { data, error } = await supabase
+      .from(columnsTable)
+      .select('*')
+      .order('position', { ascending: true })
+
+    if (error) {
+      // Table may not exist; continue with defaults silently
+      return
+    }
+
+    if (!data || data.length === 0) {
+      // Seed defaults
+      const { error: seedErr } = await supabase.from(columnsTable).insert(DEFAULT_COLUMNS)
+      if (seedErr) return
+      set({ columns: DEFAULT_COLUMNS })
+    } else {
+      set({ columns: data })
+    }
+  },
+
+  addColumn: async (labelRaw) => {
+    const label = labelRaw.trim()
+    if (!label) return null
+    const slugBase = label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'column'
+    let slug = slugBase
+    const existing = new Set(get().columns.map(c => c.key))
+    let i = 1
+    while (existing.has(slug)) { slug = `${slugBase}-${i++}` }
+    const position = (get().columns[get().columns.length - 1]?.position || 0) + 1
+
+    // Optimistic UI
+    const optimistic = { key: slug, label, position }
+    set({ columns: [...get().columns, optimistic] })
+
+    const { error } = await supabase.from(columnsTable).insert(optimistic)
+    if (error) {
+      // Revert if table missing or error
+      set({ columns: get().columns.filter(c => c.key !== slug) })
+      toast.error('Failed to create column')
+      return null
+    }
+    toast.success('Column created')
+    return optimistic
   },
 
   addTask: async ({ title, description, status }) => {
