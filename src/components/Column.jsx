@@ -8,8 +8,8 @@ export default function Column({ id, title, tasks, onEdit }) {
     <section
       ref={setNodeRef}
       aria-label={`${title} column`}
-      className={`card p-4 transition-colors ${
-        isOver ? 'ring-2 ring-primary-400' : 'ring-0'
+      className={`card glass grad-surface neon-border p-4 transition-all ${
+        isOver ? 'ring-neon' : 'ring-0'
       }`}
     >
       <div className="flex items-center justify-between mb-3">

@@ -82,7 +82,12 @@ export default function App() {
   const tasksByStatus = (status) => tasks.filter(t => t.status === status)
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background gradient blobs */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full grad-accent opacity-10 blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 w-[26rem] h-[26rem] rounded-full grad-accent opacity-10 blur-3xl" />
+      </div>
       <Header onAddTask={openCreateModal} />
       <main className="mx-auto max-w-7xl px-4 pb-10">
         <DndContext

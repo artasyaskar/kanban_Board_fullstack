@@ -17,7 +17,8 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
   }
 
   const CardInner = (
-    <div className="card p-4 group">
+    <div className="card glass grad-surface neon-border float-on-hover p-4 group relative overflow-hidden">
+      <div className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full grad-accent opacity-10 blur-2xl" />
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-medium truncate">{task.title}</h3>
@@ -29,9 +30,6 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
           <button className="btn btn-ghost size-8" aria-label="Edit task" onClick={onEdit}>
             <Pencil size={16} />
           </button>
-          <button className="btn btn-ghost size-8" aria-label="Delete task" onClick={handleDelete}>
-            <Trash2 size={16} />
-          </button>
         </div>
       </div>
       <div className="mt-3">
@@ -41,6 +39,15 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
           {task.status === 'done' && 'Done'}
         </span>
       </div>
+
+      {/* Floating recycle bin icon */}
+      <button
+        aria-label="Delete task"
+        onClick={handleDelete}
+        className="icon-chip absolute bottom-3 right-3 neon-glow hover-neon"
+      >
+        <Trash2 size={16} />
+      </button>
     </div>
   )
 
@@ -60,10 +67,12 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
       {...attributes}
       className={`select-none ${isDragging || draggingTaskId === task.id ? 'cursor-grabbing' : 'cursor-grab'}`}
       layoutId={task.id}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.99 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.18 }}
     >
       {CardInner}
     </motion.div>
