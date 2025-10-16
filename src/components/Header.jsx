@@ -23,7 +23,12 @@ export default function Header({ onAddTask, onAddColumn }) {
           <div className="size-10 rounded-lg text-white grid place-items-center font-bold grad-accent neon-glow">
             KB
           </div>
-          <h1 className="text-[1.25rem] md:text-2xl font-semibold tracking-tight">Kanban Board</h1>
+          <div className="flex flex-col">
+            <h1 className="text-[1.25rem] md:text-2xl font-semibold tracking-tight leading-6">Kanban Board</h1>
+            <span className="hidden md:block text-[10px] text-white/80 text-neon">
+              𝔹𝕪 𝔸𝕣𝕥𝕒𝕤 𝕐𝕒𝕤𝕜𝕒𝕣
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggleDark}>

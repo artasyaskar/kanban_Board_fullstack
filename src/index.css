@@ -114,3 +114,8 @@ html { scroll-behavior: smooth; }
   background: linear-gradient(180deg, rgba(99,102,241,.55), rgba(139,92,246,.55));
   border-radius: 999px;
 }
+
+/* Neon text glow for signature */
+.text-neon {
+  text-shadow: 0 0 8px rgba(99,102,241,.4), 0 0 14px rgba(139,92,246,.35);
+}
