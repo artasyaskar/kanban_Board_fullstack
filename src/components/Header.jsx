@@ -1,7 +1,7 @@
 import { Plus, Sun, MoonStar } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-export default function Header({ onAddTask }) {
+export default function Header({ onAddTask, onAddColumn }) {
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
@@ -28,6 +28,9 @@ export default function Header({ onAddTask }) {
         <div className="flex items-center gap-2">
           <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggleDark}>
             {dark ? <Sun size={18} /> : <MoonStar size={18} />}
+          </button>
+          <button className="btn btn-ghost" onClick={onAddColumn}>
+            + Add Column
           </button>
           <button className="btn btn-primary hover-neon" onClick={onAddTask}>
             <Plus size={18} />
