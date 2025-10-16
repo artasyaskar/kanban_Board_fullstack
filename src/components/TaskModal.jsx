@@ -2,15 +2,9 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import useTaskStore from '../store/taskStore'
 
-const STATUSES = [
-  { value: 'todo', label: 'To Do' },
-  { value: 'inprogress', label: 'In Progress' },
-  { value: 'done', label: 'Done' },
-]
-
 export default function TaskModal({ open, onClose, task }) {
   const isEdit = Boolean(task)
-  const { addTask, updateTask } = useTaskStore()
+  const { addTask, updateTask, columns } = useTaskStore()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('todo')
@@ -24,9 +18,9 @@ export default function TaskModal({ open, onClose, task }) {
     } else {
       setTitle('')
       setDescription('')
-      setStatus('todo')
+      setStatus(columns?.[0]?.key || 'todo')
     }
-  }, [isEdit, task])
+  }, [isEdit, task, columns])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -90,8 +84,8 @@ export default function TaskModal({ open, onClose, task }) {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+              {(columns || []).map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
           </div>
