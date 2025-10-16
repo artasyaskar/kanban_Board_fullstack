@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Smooth scroll + selection */
+html { scroll-behavior: smooth; }
+::selection { background: theme('colors.primary.300'); color: #111827; }
+
+/* Cards */
+.card {
+  @apply bg-white dark:bg-[#111319] rounded-xl shadow-soft border border-gray-100 dark:border-gray-800;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 h-10 text-sm font-medium transition-colors;
+}
+.btn-primary {
+  @apply bg-primary-600 hover:bg-primary-700 text-white;
+}
+.btn-ghost {
+  @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+}
+
+/* Inputs */
+.input {
+  @apply w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0E1016] px-3 h-10 text-sm outline-none focus:ring-2 focus:ring-primary-400;
+}
+.textarea {
+  @apply w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0E1016] p-3 text-sm outline-none focus:ring-2 focus:ring-primary-400;
+}
+
+/* Column headers */
+.column-title {
+  @apply text-sm uppercase tracking-wider font-semibold text-gray-600 dark:text-gray-300;
+}
