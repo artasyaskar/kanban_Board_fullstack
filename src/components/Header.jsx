@@ -20,10 +20,10 @@ export default function Header({ onAddTask }) {
     <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-[#0B0B0F]/60 border-b border-gray-100 dark:border-gray-800">
       <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg text-white grid place-items-center font-bold grad-accent neon-glow">
+          <div className="size-10 rounded-lg text-white grid place-items-center font-bold grad-accent neon-glow">
             KB
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Kanban Board</h1>
+          <h1 className="text-[1.25rem] md:text-2xl font-semibold tracking-tight">Kanban Board</h1>
         </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggleDark}>
