@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
+import { Sun, MoonStar } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 
 export default function Auth() {
@@ -8,7 +9,21 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState('signin')
+  const [dark, setDark] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Initialize dark mode from system preference
+  useEffect(() => {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setDark(true)
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  const toggleDark = () => {
+    setDark(!dark)
+    document.documentElement.classList.toggle('dark')
+  }
 
   // Clear signup success message when switching modes
   useEffect(() => {
@@ -51,12 +66,20 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-[70vh] grid place-items-center px-4">
+    <div className="min-h-screen grid place-items-center px-4 bg-gradient-to-b from-white to-gray-50 dark:from-[#0B0B0F] dark:to-[#0F0F17]">
+      <button 
+        onClick={toggleDark} 
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+        aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {dark ? <Sun size={20} /> : <MoonStar size={20} />}
+      </button>
+      
       <motion.div
         initial={{ opacity: 0, y: 10, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.15 }}
-        className="card glass neon-border p-6 w-full max-w-sm"
+        className="card glass neon-border p-6 w-full max-w-sm relative z-10"
       >
         <h2 className="text-xl font-semibold mb-1">
           {mode === 'signin' ? 'Welcome back' : 'Create an account'}
