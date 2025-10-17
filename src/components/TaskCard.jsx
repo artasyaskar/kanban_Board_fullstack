@@ -19,7 +19,7 @@ export default function TaskCard({ task, onEdit = () => {}, dragging = false, ov
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1000 : 'auto',
     position: 'relative',
-    touchAction: 'none',
+    touchAction: 'manipulation',
   }
 
   const handleDelete = (e) => {

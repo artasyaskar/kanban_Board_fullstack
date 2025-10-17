@@ -22,7 +22,7 @@ export default function Column({ id, title, tasks, onEdit }) {
     <section
       ref={setNodeRef}
       aria-label={`${title} column`}
-      className={`card glass grad-surface neon-border p-5 transition-all flex flex-col relative group ${
+      className={`card glass grad-surface neon-border p-5 transition-all flex flex-col relative group min-h-0 overflow-hidden ${
         isOver ? 'ring-neon' : 'ring-0'
       }`}
       style={{ maxHeight: '72vh' }}
@@ -65,7 +65,7 @@ export default function Column({ id, title, tasks, onEdit }) {
         </div>
       )}
 
-      <div className="space-y-3 min-h-[40px] overflow-y-auto pr-1 custom-scroll">
+      <div className="space-y-3 min-h-0 pr-1 custom-scroll overflow-y-auto flex-1 max-h-[58vh] md:max-h-[62vh]">
         {tasks.map((task) => (
           <TaskCard key={task.id} task={task} onEdit={() => onEdit(task)} />
         ))}
