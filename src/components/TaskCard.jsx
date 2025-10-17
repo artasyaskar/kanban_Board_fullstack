@@ -4,20 +4,38 @@ import { motion } from 'framer-motion'
 import { Pencil, Trash2 } from 'lucide-react'
 import useTaskStore from '../store/taskStore'
 
-export default function TaskCard({ task, onEdit, dragging = false, overlay = false }) {
+export default function TaskCard({ task, onEdit = () => {}, dragging = false, overlay = false }) {
   const { deleteTask, draggingTaskId } = useTaskStore()
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ 
+    id: task.id,
+    data: {
+      type: 'task',
+      task,
+    }
+  })
 
   const style = {
     transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+    position: 'relative',
+    touchAction: 'none',
   }
 
-  const handleDelete = () => {
+  const handleDelete = (e) => {
+    e.stopPropagation()
     deleteTask(task.id)
   }
 
-  const handleEdit = () => {
-    if (onEdit) onEdit()
+  const handleEdit = (e) => {
+    e.stopPropagation()
+    onEdit()
+  }
+
+  // Prevent default touch behavior that could interfere with dragging
+  const preventDefault = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   const CardInner = (
@@ -31,7 +49,12 @@ export default function TaskCard({ task, onEdit, dragging = false, overlay = fal
           )}
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <button className="btn btn-ghost size-8" aria-label="Edit task" onMouseDown={(e)=>e.stopPropagation()} onClick={handleEdit}>
+          <button 
+            className="btn btn-ghost size-8" 
+            aria-label="Edit task" 
+            onMouseDown={(e) => e.stopPropagation()} 
+            onClick={handleEdit}
+          >
             <Pencil size={16} />
           </button>
         </div>

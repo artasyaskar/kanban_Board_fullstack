@@ -51,13 +51,16 @@ export default function App() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Increased from 5px for better touch start
+        distance: 5,
+        tolerance: 5,
+        delay: 100,
       },
     }),
     useSensor(TouchSensor, {
+      // Enable press delay of 250ms, with tolerance of 5px movement
       activationConstraint: {
-        delay: 150, // Slightly longer delay to prevent accidental drags
-        tolerance: 8, // Increased tolerance for better touch handling
+        delay: 250,
+        tolerance: 5,
       },
     })
   )
@@ -66,19 +69,31 @@ export default function App() {
   useEffect(() => {
     // Add class to body for touch device detection
     document.body.classList.add('touch-device')
-    document.body.style.touchAction = 'manipulation'
+    document.body.style.touchAction = 'none' // Changed to 'none' for better touch control
     
     // Add CSS variables for touch feedback
     const style = document.createElement('style')
     style.textContent = `
-      .touch-device .task-card {
+      .task-card {
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
         user-select: none;
+        touch-action: none; /* Disable default touch actions */
       }
-      .touch-device .task-card:active {
+      .task-card:active {
         transform: scale(1.02);
         transition: transform 0.1s ease;
+      }
+      /* Prevent text selection during drag */
+      * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      /* Improve touch feedback */
+      [role="button"] {
+        cursor: pointer;
       }
     `
     document.head.appendChild(style)
@@ -110,21 +125,34 @@ export default function App() {
     setDraggingTaskId(active.id)
   }, [tasks])
 
-  const handleDragOver = (event) => {
+  const handleDragOver = useCallback((event) => {
     const { active, over } = event
     if (!over) return
-    const activeTaskId = active.id
-    const overId = over.id
-
-    const activeTaskObj = tasks.find(t => t.id === activeTaskId)
-    if (!activeTaskObj) return
-
+    
+    const activeId = active.id.toString()
+    const overId = over.id.toString()
+    
+    // Find the task being dragged
+    const activeTask = tasks.find(t => t.id === activeId)
+    if (!activeTask) return
+    
+    // If dropping over a column
     if (columnKeys.has(overId)) {
-      if (activeTaskObj.status !== overId) {
-        moveTaskLocal(activeTaskId, overId)
+      if (activeTask.status !== overId) {
+        moveTaskLocal(activeId, overId)
+      }
+      return
+    }
+    
+    // If dropping over another task
+    const overTask = tasks.find(t => t.id === overId)
+    if (overTask && activeId !== overId) {
+      // Only move if the status has changed
+      if (activeTask.status !== overTask.status) {
+        moveTaskLocal(activeId, overTask.status)
       }
     }
-  }
+  }, [tasks, columnKeys, moveTaskLocal])
 
   const handleDragEnd = useCallback(async (event) => {
     const { active, over } = event
@@ -137,15 +165,41 @@ export default function App() {
       element.style.transition = ''
     }
     
+    // Reset dragging state
     setDraggingTaskId(null)
-    if (!over) return
-
-    const overId = over.id
-    if (columnKeys.has(overId)) {
-      await moveTaskPersist(active.id, overId)
+    
+    // If dropped outside a valid drop target
+    if (!over) {
+      setActiveTask(null)
+      return
     }
+    
+    const activeId = active.id.toString()
+    const overId = over.id.toString()
+    
+    // Find the task being dragged
+    const activeTask = tasks.find(t => t.id === activeId)
+    if (!activeTask) {
+      setActiveTask(null)
+      return
+    }
+    
+    // If dropped on a column
+    if (columnKeys.has(overId)) {
+      if (activeTask.status !== overId) {
+        await moveTaskPersist(activeId, overId)
+      }
+    } 
+    // If dropped on another task
+    else {
+      const overTask = tasks.find(t => t.id === overId)
+      if (overTask && activeId !== overId && activeTask.status !== overTask.status) {
+        await moveTaskPersist(activeId, overTask.status)
+      }
+    }
+    
     setActiveTask(null)
-  }, [columnKeys, moveTaskPersist])
+  }, [tasks, columnKeys, moveTaskPersist])
 
   const openCreateModal = () => {
     setEditingTask(null)
@@ -218,24 +272,19 @@ export default function App() {
                   acceleration: 15,
                   interval: 5,
                 }}
-                modifiers={[{
-                  name: 'preventScrollDuringDrag',
-                  enabled: true,
-                  effect: ({ active }) => {
-                    if (active) {
-                      document.body.style.overflow = 'hidden';
-                      document.documentElement.style.overflow = 'hidden';
-                    } else {
-                      document.body.style.overflow = '';
-                      document.documentElement.style.overflow = '';
-                    }
-                    return () => {
-                      document.body.style.overflow = '';
-                      document.documentElement.style.overflow = '';
-                    };
-                  },
-                }]}
               >
+                <div 
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: 'none',
+                    zIndex: 1000,
+                    touchAction: 'none',
+                  }}
+                />
                 <div className="grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6"> 
                   {(columns || []).map((c) => (
                     <Column
