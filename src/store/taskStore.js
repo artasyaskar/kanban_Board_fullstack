@@ -38,6 +38,44 @@ const useTaskStore = create((set, get) => ({
   },
 
   // Columns CRUD
+  deleteColumn: async (key) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid) return
+
+    // First, delete all tasks in this column
+    const { error: taskError } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('status', key)
+      .eq('user_id', uid)
+
+    if (taskError) {
+      toast.error('Failed to delete tasks in column')
+      return
+    }
+
+    // Then delete the column
+    const { error } = await supabase
+      .from(columnsTable)
+      .delete()
+      .eq('key', key)
+      .eq('user_id', uid)
+
+    if (error) {
+      toast.error('Failed to delete column')
+      return
+    }
+
+    // Update local state
+    set(state => ({
+      columns: state.columns.filter(col => col.key !== key),
+      tasks: state.tasks.filter(task => task.status !== key)
+    }))
+
+    toast.success('Column deleted')
+  },
+
   fetchColumns: async () => {
     const { data: userData } = await supabase.auth.getUser()
     const uid = userData?.user?.id
