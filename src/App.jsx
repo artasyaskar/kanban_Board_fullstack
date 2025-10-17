@@ -51,30 +51,64 @@ export default function App() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // 5px movement before drag starts (desktop)
+        distance: 8, // Increased from 5px for better touch start
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // 250ms delay before drag starts (mobile)
-        tolerance: 5, // 5px of movement allowed during delay
-      },
-    }),
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 5, // 5px movement before drag starts (mouse)
+        delay: 150, // Slightly longer delay to prevent accidental drags
+        tolerance: 8, // Increased tolerance for better touch handling
       },
     })
   )
 
+  // Add touch-action CSS to the document body to prevent browser interference
+  useEffect(() => {
+    // Add class to body for touch device detection
+    document.body.classList.add('touch-device')
+    document.body.style.touchAction = 'manipulation'
+    
+    // Add CSS variables for touch feedback
+    const style = document.createElement('style')
+    style.textContent = `
+      .touch-device .task-card {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+      }
+      .touch-device .task-card:active {
+        transform: scale(1.02);
+        transition: transform 0.1s ease;
+      }
+    `
+    document.head.appendChild(style)
+    
+    return () => {
+      document.body.classList.remove('touch-device')
+      document.body.style.touchAction = ''
+      document.head.removeChild(style)
+    }
+  }, [])
+
   const columnKeys = useMemo(() => new Set((columns || []).map(c => c.key)), [columns])
 
-  const handleDragStart = (event) => {
+  const handleDragStart = useCallback((event) => {
     const { active } = event
     const task = tasks.find(t => t.id === active.id)
+    
+    // Add visual feedback for touch devices
+    if (event.activatorEvent.type.includes('touch')) {
+      const element = document.getElementById(`task-${active.id}`)
+      if (element) {
+        element.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease'
+        element.style.transform = 'scale(1.05)'
+        element.style.zIndex = '1000'
+      }
+    }
+    
     setActiveTask(task || null)
     setDraggingTaskId(active.id)
-  }
+  }, [tasks])
 
   const handleDragOver = (event) => {
     const { active, over } = event
@@ -92,8 +126,17 @@ export default function App() {
     }
   }
 
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = useCallback(async (event) => {
     const { active, over } = event
+    
+    // Clean up touch feedback
+    const element = document.getElementById(`task-${active.id}`)
+    if (element) {
+      element.style.transform = ''
+      element.style.zIndex = ''
+      element.style.transition = ''
+    }
+    
     setDraggingTaskId(null)
     if (!over) return
 
@@ -102,7 +145,7 @@ export default function App() {
       await moveTaskPersist(active.id, overId)
     }
     setActiveTask(null)
-  }
+  }, [columnKeys, moveTaskPersist])
 
   const openCreateModal = () => {
     setEditingTask(null)
@@ -175,6 +218,23 @@ export default function App() {
                   acceleration: 15,
                   interval: 5,
                 }}
+                modifiers={[{
+                  name: 'preventScrollDuringDrag',
+                  enabled: true,
+                  effect: ({ active }) => {
+                    if (active) {
+                      document.body.style.overflow = 'hidden';
+                      document.documentElement.style.overflow = 'hidden';
+                    } else {
+                      document.body.style.overflow = '';
+                      document.documentElement.style.overflow = '';
+                    }
+                    return () => {
+                      document.body.style.overflow = '';
+                      document.documentElement.style.overflow = '';
+                    };
+                  },
+                }]}
               >
                 <div className="grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6"> 
                   {(columns || []).map((c) => (
