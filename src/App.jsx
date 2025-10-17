@@ -8,19 +8,29 @@ import Column from './components/Column.jsx'
 import TaskCard from './components/TaskCard.jsx'
 import TaskModal from './components/TaskModal.jsx'
 import ColumnModal from './components/ColumnModal.jsx'
+import Auth from './components/Auth.jsx'
 import useTaskStore from './store/taskStore.js'
+import useAuthStore from './store/authStore.js'
 
 export default function App() {
   const { tasks, fetchTasks, moveTaskLocal, moveTaskPersist, setDraggingTaskId, columns, fetchColumns } = useTaskStore()
+  const { user, loading: authLoading, init } = useAuthStore()
   const [activeTask, setActiveTask] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [columnModalOpen, setColumnModalOpen] = useState(false)
 
   useEffect(() => {
-    fetchTasks()
-    fetchColumns()
-  }, [fetchTasks, fetchColumns])
+    // Initialize auth once
+    init()
+  }, [init])
+
+  useEffect(() => {
+    if (user) {
+      fetchTasks()
+      fetchColumns()
+    }
+  }, [user, fetchTasks, fetchColumns])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -88,6 +98,11 @@ export default function App() {
         <div className="absolute -bottom-24 -right-24 w-[26rem] h-[26rem] rounded-full grad-accent opacity-10 blur-3xl" />
       </div>
       <Header onAddTask={openCreateModal} onAddColumn={() => setColumnModalOpen(true)} />
+      {authLoading ? (
+        <div className="mx-auto max-w-7xl px-4 py-16 text-center text-white/80">Loading…</div>
+      ) : !user ? (
+        <Auth />
+      ) : (
       <main className="mx-auto max-w-7xl px-4 pb-10">
         <DndContext
           sensors={sensors}
@@ -117,6 +132,7 @@ export default function App() {
           </DragOverlay>
         </DndContext>
       </main>
+      )}
 
       <AnimatePresence>
         {modalOpen && (
@@ -126,6 +142,14 @@ export default function App() {
           <ColumnModal open={columnModalOpen} onClose={() => setColumnModalOpen(false)} />
         )}
       </AnimatePresence>
+
+      {/* Footer signature */}
+      <footer className="mx-auto max-w-7xl px-4 pb-6 text-center">
+        <div className="inline-flex items-center gap-2 text-[11px] text-white/70">
+          <span className="inline-block size-1.5 rounded-full grad-accent" />
+          <span className="text-neon">𝔹𝕪 𝔸𝕣𝕥𝕒𝕤 𝕐𝕒𝕤𝕜𝕒𝕣</span>
+        </div>
+      </footer>
 
       <Toaster position="top-right" />
     </div>

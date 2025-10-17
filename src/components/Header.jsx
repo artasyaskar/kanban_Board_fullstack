@@ -1,8 +1,10 @@
-import { Plus, Sun, MoonStar } from 'lucide-react'
+import { Plus, Sun, MoonStar, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import useAuthStore from '../store/authStore'
 
 export default function Header({ onAddTask, onAddColumn }) {
   const [dark, setDark] = useState(false)
+  const { user, signOut } = useAuthStore()
 
   useEffect(() => {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -34,6 +36,14 @@ export default function Header({ onAddTask, onAddColumn }) {
           <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggleDark}>
             {dark ? <Sun size={18} /> : <MoonStar size={18} />}
           </button>
+          {user && (
+            <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-sm">
+              <span className="text-white/80 truncate max-w-[180px]">{user.email}</span>
+              <button className="btn btn-ghost h-8 px-2" title="Sign out" onClick={signOut}>
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
           <button className="btn btn-ghost" onClick={onAddColumn}>
             + Add Column
           </button>

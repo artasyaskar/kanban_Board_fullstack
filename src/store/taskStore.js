@@ -20,10 +20,14 @@ const useTaskStore = create((set, get) => ({
   setDraggingTaskId: (id) => set({ draggingTaskId: id }),
 
   fetchTasks: async () => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid) { set({ tasks: [], loading: false }); return }
     set({ loading: true })
     const { data, error } = await supabase
       .from(table)
       .select('*')
+      .eq('user_id', uid)
       .order('created_at', { ascending: true })
     if (error) {
       toast.error('Failed to fetch tasks')
@@ -35,10 +39,14 @@ const useTaskStore = create((set, get) => ({
 
   // Columns CRUD
   fetchColumns: async () => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid) { set({ columns: DEFAULT_COLUMNS }); return }
     // Try fetch from Supabase; fallback to defaults if table missing
     const { data, error } = await supabase
       .from(columnsTable)
       .select('*')
+      .eq('user_id', uid)
       .order('position', { ascending: true })
 
     if (error) {
@@ -48,15 +56,19 @@ const useTaskStore = create((set, get) => ({
 
     if (!data || data.length === 0) {
       // Seed defaults
-      const { error: seedErr } = await supabase.from(columnsTable).insert(DEFAULT_COLUMNS)
+      const seedRows = DEFAULT_COLUMNS.map(c => ({ ...c, user_id: uid }))
+      const { error: seedErr } = await supabase.from(columnsTable).insert(seedRows)
       if (seedErr) return
-      set({ columns: DEFAULT_COLUMNS })
+      set({ columns: seedRows })
     } else {
       set({ columns: data })
     }
   },
 
   addColumn: async (labelRaw) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid) { toast.error('Please sign in'); return null }
     const label = labelRaw.trim()
     if (!label) return null
     const slugBase = label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'column'
@@ -67,7 +79,7 @@ const useTaskStore = create((set, get) => ({
     const position = (get().columns[get().columns.length - 1]?.position || 0) + 1
 
     // Optimistic UI
-    const optimistic = { key: slug, label, position }
+    const optimistic = { key: slug, label, position, user_id: uid }
     set({ columns: [...get().columns, optimistic] })
 
     const { error } = await supabase.from(columnsTable).insert(optimistic)
@@ -82,11 +94,15 @@ const useTaskStore = create((set, get) => ({
   },
 
   addTask: async ({ title, description, status }) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+    if (!uid) { toast.error('Please sign in'); return null }
     const payload = {
       title,
       description: description || '',
       status: status || 'todo',
       created_at: new Date().toISOString(),
+      user_id: uid,
     }
     const optimisticId = `optimistic-${Math.random().toString(36).slice(2)}`
     set({ tasks: [...get().tasks, { id: optimisticId, ...payload }] })
@@ -102,9 +118,11 @@ const useTaskStore = create((set, get) => ({
   },
 
   updateTask: async (id, updates) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.map(t => (t.id === id ? { ...t, ...updates } : t)) })
-    const { data, error } = await supabase.from(table).update(updates).eq('id', id).select().single()
+    const { data, error } = await supabase.from(table).update(updates).eq('id', id).eq('user_id', uid).select().single()
     if (error) {
       set({ tasks: prev })
       toast.error('Failed to update task')
@@ -115,9 +133,11 @@ const useTaskStore = create((set, get) => ({
   },
 
   deleteTask: async (id) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.filter(t => t.id !== id) })
-    const { error } = await supabase.from(table).delete().eq('id', id)
+    const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', uid)
     if (error) {
       set({ tasks: prev })
       toast.error('Failed to delete task')
@@ -132,9 +152,11 @@ const useTaskStore = create((set, get) => ({
   },
 
   moveTaskPersist: async (id, newStatus) => {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)) })
-    const { error } = await supabase.from(table).update({ status: newStatus }).eq('id', id)
+    const { error } = await supabase.from(table).update({ status: newStatus }).eq('id', id).eq('user_id', uid)
     if (error) {
       set({ tasks: prev })
       toast.error('Failed to move task')
