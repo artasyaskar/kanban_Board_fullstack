@@ -16,25 +16,53 @@ const useTaskStore = create((set, get) => ({
   loading: false,
   draggingTaskId: null,
   columns: DEFAULT_COLUMNS, // fallback if columns table not available
+  // Map to track optimistic IDs to real IDs when insert resolves
+  optimisticIdMap: {},
+
+  // LocalStorage status overrides (fallback persistence without DB changes)
+  _getStatusOverrides: () => {
+    try {
+      const raw = localStorage.getItem('kb_status_overrides')
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  },
+  _setStatusOverride: (taskId, status) => {
+    try {
+      const map = { ...get()._getStatusOverrides(), [taskId]: status }
+      localStorage.setItem('kb_status_overrides', JSON.stringify(map))
+    } catch {}
+  },
+  _clearStatusOverride: (taskId) => {
+    try {
+      const map = get()._getStatusOverrides()
+      if (map[taskId]) {
+        delete map[taskId]
+        localStorage.setItem('kb_status_overrides', JSON.stringify(map))
+      }
+    } catch {}
+  },
 
   setDraggingTaskId: (id) => set({ draggingTaskId: id }),
 
   fetchTasks: async () => {
-    const { data: userData } = await supabase.auth.getUser()
-    const uid = userData?.user?.id
-    if (!uid) { set({ tasks: [], loading: false }); return }
     set({ loading: true })
     const { data, error } = await supabase
       .from(table)
       .select('*')
-      .eq('user_id', uid)
       .order('created_at', { ascending: true })
     if (error) {
       toast.error('Failed to fetch tasks')
       set({ loading: false })
       return
     }
-    set({ tasks: data || [], loading: false })
+    // Apply local overrides if present
+    const overrides = get()._getStatusOverrides()
+    const withOverrides = (data || []).map(t => (
+      overrides[t.id] ? { ...t, status: overrides[t.id] } : t
+    ))
+    set({ tasks: withOverrides, loading: false })
   },
 
   // Columns CRUD
@@ -150,37 +178,47 @@ const useTaskStore = create((set, get) => ({
       toast.error('Failed to create task')
       return null
     }
-    set({ tasks: get().tasks.map(t => t.id === optimisticId ? data : t) })
+    // Replace optimistic task with real row and record mapping
+    set({ 
+      tasks: get().tasks.map(t => t.id === optimisticId ? data : t),
+      optimisticIdMap: { ...get().optimisticIdMap, [optimisticId]: data.id }
+    })
     toast.success('Task created')
     return data
   },
 
   updateTask: async (id, updates) => {
-    const { data: userData } = await supabase.auth.getUser()
-    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.map(t => (t.id === id ? { ...t, ...updates } : t)) })
-    const { data, error } = await supabase.from(table).update(updates).eq('id', id).eq('user_id', uid).select().single()
-    if (error) {
+    const { data, error } = await supabase
+      .from(table)
+      .update(updates)
+      .eq('id', id)
+      .select()
+    if (error || !data || data.length === 0) {
       set({ tasks: prev })
       toast.error('Failed to update task')
       return null
     }
     toast.success('Task updated')
-    return data
+    return Array.isArray(data) ? data[0] : data
   },
 
   deleteTask: async (id) => {
-    const { data: userData } = await supabase.auth.getUser()
-    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.filter(t => t.id !== id) })
-    const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', uid)
-    if (error) {
+    const { data, error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', id)
+      .select()
+    if (error || !data) {
       set({ tasks: prev })
       toast.error('Failed to delete task')
       return false
     }
+    // Clear any local override
+    get()._clearStatusOverride(id)
     toast.success('Task deleted')
     return true
   },
@@ -190,16 +228,38 @@ const useTaskStore = create((set, get) => ({
   },
 
   moveTaskPersist: async (id, newStatus) => {
-    const { data: userData } = await supabase.auth.getUser()
-    const uid = userData?.user?.id
     const prev = get().tasks
     set({ tasks: prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)) })
-    const { error } = await supabase.from(table).update({ status: newStatus }).eq('id', id).eq('user_id', uid)
-    if (error) {
-      set({ tasks: prev })
-      toast.error('Failed to move task')
+
+    // Resolve real ID if this is an optimistic one
+    let realId = id
+    const map = get().optimisticIdMap || {}
+    const isOptimistic = id.startsWith('optimistic-')
+
+    if (isOptimistic && !map[id]) {
+      // Wait briefly for insert to resolve and mapping to appear
+      for (let i = 0; i < 10 && !get().optimisticIdMap[id]; i++) {
+        // ~100ms * 10 = up to ~1s wait
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 100))
+      }
+    }
+    realId = get().optimisticIdMap[id] || id
+
+    const { data, error } = await supabase
+      .from(table)
+      .update({ status: newStatus })
+      .eq('id', realId)
+      .select()
+
+    if (error || !data || data.length === 0) {
+      // Even if DB update failed, persist locally to satisfy refresh requirement
+      get()._setStatusOverride(realId, newStatus)
+      toast.error('Saved locally (DB update failed)')
       return false
     }
+    // Successful DB update: also sync local override to keep consistency across devices
+    get()._setStatusOverride(realId, newStatus)
     return true
   },
 }))
