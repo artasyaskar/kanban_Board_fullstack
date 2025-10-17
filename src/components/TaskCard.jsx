@@ -32,31 +32,67 @@ export default function TaskCard({ task, onEdit = () => {}, dragging = false, ov
     onEdit()
   }
 
-  // Prevent default touch behavior that could interfere with dragging
-  const preventDefault = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
+  // Action Button component with proper event handling
+  const ActionButton = ({ icon: Icon, label, onClick, className = '' }) => {
+    const handleTouchStart = (e) => {
+      // Only prevent default if we're not in a scrollable container
+      if (!e.target.closest('.custom-scroll')) {
+        e.stopPropagation()
+      }
+    }
+
+    const handleClick = (e) => {
+      e.stopPropagation()
+      onClick(e)
+    }
+
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        onPointerDown={(e) => {
+          // Prevent drag from starting when pressing the button (pointer covers mouse+touch)
+          e.stopPropagation()
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation()
+        }}
+        onTouchStart={handleTouchStart}
+        onClick={handleClick}
+        className={`${className} p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation`}
+        style={{
+          WebkitTapHighlightColor: 'transparent',
+          WebkitTouchCallout: 'none',
+          userSelect: 'none',
+        }}
+      >
+        <Icon size={16} />
+      </button>
+    )
   }
 
   const CardInner = (
-    <div className="card glass grad-surface neon-border float-on-hover p-5 group relative overflow-hidden">
+    <div 
+      className="card glass grad-surface neon-border float-on-hover p-5 group relative overflow-hidden"
+      onClick={(e) => {
+        // Only handle clicks on the card itself, not on buttons
+        if (e.target === e.currentTarget) {
+          e.stopPropagation()
+        }
+      }}
+    >
       <div className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full grad-accent opacity-10 blur-2xl" />
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+        {/* Drag handle: only this area starts drag */}
+        <div 
+          className={`flex-1 min-w-0 ${isDragging || draggingTaskId === task.id ? 'cursor-grabbing' : 'cursor-grab'}`}
+          {...listeners}
+          {...attributes}
+        >
           <h3 className="font-semibold text-[15px] md:text-base truncate">{task.title}</h3>
           {task.description && (
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{task.description}</p>
           )}
-        </div>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <button 
-            className="btn btn-ghost size-8" 
-            aria-label="Edit task" 
-            onMouseDown={(e) => e.stopPropagation()} 
-            onClick={handleEdit}
-          >
-            <Pencil size={16} />
-          </button>
         </div>
       </div>
       <div className="mt-2 pr-14">
@@ -76,25 +112,21 @@ export default function TaskCard({ task, onEdit = () => {}, dragging = false, ov
         </span>
       </div>
 
-      {/* Floating recycle bin icon */}
-      <button
-        aria-label="Delete task"
-        onMouseDown={(e)=>e.stopPropagation()}
-        onClick={handleDelete}
-        className="icon-chip absolute bottom-3 right-3 neon-glow hover-neon"
-      >
-        <Trash2 size={16} />
-      </button>
-
-      {/* Floating edit icon */}
-      <button
-        aria-label="Edit task"
-        onMouseDown={(e)=>e.stopPropagation()}
-        onClick={handleEdit}
-        className="icon-chip absolute bottom-3 left-3 neon-glow hover-neon"
-      >
-        <Pencil size={16} />
-      </button>
+      {/* Action Buttons */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        <ActionButton 
+          icon={Pencil} 
+          label="Edit task" 
+          onClick={handleEdit} 
+          className="neon-glow hover-neon"
+        />
+        <ActionButton 
+          icon={Trash2} 
+          label="Delete task" 
+          onClick={handleDelete} 
+          className="neon-glow hover-neon"
+        />
+      </div>
     </div>
   )
 
@@ -110,9 +142,7 @@ export default function TaskCard({ task, onEdit = () => {}, dragging = false, ov
     <motion.div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`select-none ${isDragging || draggingTaskId === task.id ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`select-none`}
       layoutId={task.id}
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
