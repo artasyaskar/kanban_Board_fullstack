@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/Header.jsx'
 import Column from './components/Column.jsx'
@@ -12,19 +12,34 @@ import Auth from './components/Auth.jsx'
 import useTaskStore from './store/taskStore.js'
 import useAuthStore from './store/authStore.js'
 
+// AuthInitializer component to handle auth state before rendering the app
+function AuthInitializer({ children }) {
+  const { init, loading } = useAuthStore()
+
+  useEffect(() => {
+    init()
+  }, [init])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-pulse text-white/80">Loading...</div>
+      </div>
+    )
+  }
+
+  return children
+}
+
 export default function App() {
   const { tasks, fetchTasks, moveTaskLocal, moveTaskPersist, setDraggingTaskId, columns, fetchColumns } = useTaskStore()
-  const { user, loading: authLoading, init } = useAuthStore()
+  const { user } = useAuthStore()
   const [activeTask, setActiveTask] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [columnModalOpen, setColumnModalOpen] = useState(false)
 
-  useEffect(() => {
-    // Initialize auth once
-    init()
-  }, [init])
-
+  // Fetch data when user is authenticated
   useEffect(() => {
     if (user) {
       fetchTasks()
@@ -91,67 +106,96 @@ export default function App() {
   const tasksByStatus = (status) => tasks.filter(t => t.status === status)
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background gradient blobs */}
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full grad-accent opacity-10 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 w-[26rem] h-[26rem] rounded-full grad-accent opacity-10 blur-3xl" />
-      </div>
-      <Header onAddTask={openCreateModal} onAddColumn={() => setColumnModalOpen(true)} />
-      {authLoading ? (
-        <div className="mx-auto max-w-7xl px-4 py-16 text-center text-white/80">Loading…</div>
-      ) : !user ? (
-        <Auth />
-      ) : (
-      <main className="mx-auto max-w-7xl px-4 pb-10">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className={`grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6`}> 
-            {(columns || []).map((c) => (
-              <Column
-                key={c.key}
-                id={c.key}
-                title={c.label}
-                tasks={tasksByStatus(c.key)}
-                onEdit={openEditModal}
-              />
-            ))}
-          </div>
-
-          <DragOverlay>
-            {activeTask ? (
-              <div className="opacity-90">
-                <TaskCard task={activeTask} dragging overlay />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </main>
-      )}
-
-      <AnimatePresence>
-        {modalOpen && (
-          <TaskModal open={modalOpen} onClose={closeModal} task={editingTask} />
-        )}
-        {columnModalOpen && (
-          <ColumnModal open={columnModalOpen} onClose={() => setColumnModalOpen(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* Footer signature */}
-      <footer className="mx-auto max-w-7xl px-4 pb-6 text-center">
-        <div className="inline-flex items-center gap-2 text-[11px] text-white/70">
-          <span className="inline-block size-1.5 rounded-full grad-accent" />
-          <span className="text-neon">𝔹𝕪 𝔸𝕣𝕥𝕒𝕤 𝕐𝕒𝕤𝕜𝕒𝕣</span>
+    <AuthInitializer>
+      <div className="min-h-screen relative overflow-hidden">
+        {/* Background gradient blobs */}
+        <div className="pointer-events-none fixed inset-0 -z-10">
+          <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full grad-accent opacity-10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-[26rem] h-[26rem] rounded-full grad-accent opacity-10 blur-3xl" />
         </div>
-      </footer>
 
-      <Toaster position="top-right" />
-    </div>
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: '#1e1e2e',
+              color: '#cdd6f4',
+              border: '1px solid #45475a',
+              padding: '12px 16px',
+              fontSize: '14px',
+              borderRadius: '8px',
+              maxWidth: '100%',
+            },
+            success: {
+              iconTheme: {
+                primary: '#a6e3a1',
+                secondary: '#1e1e2e',
+              },
+            },
+            error: {
+              style: {
+                background: '#313244',
+                color: '#f38ba8',
+                border: '1px solid #f38ba8',
+              },
+            },
+          }}
+        />
+        
+        {!user ? (
+          <Auth />
+        ) : (
+          <>
+            <Header onAddTask={openCreateModal} onAddColumn={() => setColumnModalOpen(true)} />
+            <main className="mx-auto max-w-7xl px-4 pb-10">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6"> 
+                  {(columns || []).map((c) => (
+                    <Column
+                      key={c.key}
+                      id={c.key}
+                      title={c.label}
+                      tasks={tasksByStatus(c.key)}
+                      onEdit={openEditModal}
+                    />
+                  ))}
+                </div>
+
+                <DragOverlay>
+                  {activeTask ? (
+                    <div className="opacity-90">
+                      <TaskCard task={activeTask} dragging overlay />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </main>
+
+            <AnimatePresence>
+              {modalOpen && (
+                <TaskModal open={modalOpen} onClose={closeModal} task={editingTask} />
+              )}
+              {columnModalOpen && (
+                <ColumnModal open={columnModalOpen} onClose={() => setColumnModalOpen(false)} />
+              )}
+            </AnimatePresence>
+
+            {/* Footer signature */}
+            <footer className="mx-auto max-w-7xl px-4 pb-6 text-center">
+              <div className="inline-flex items-center gap-2 text-[11px] text-white/70">
+                <span className="inline-block size-1.5 rounded-full grad-accent" />
+                <span className="text-neon">𝔹𝕪 𝔸𝕣𝕥𝕒𝕤 𝕐𝕒𝕤𝕜𝕒𝕣</span>
+              </div>
+            </footer>
+          </>
+        )}
+      </div>
+    </AuthInitializer>
   )
 }
