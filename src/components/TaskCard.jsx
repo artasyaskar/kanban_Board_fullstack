@@ -73,7 +73,7 @@ export default function TaskCard({ task, onEdit = () => {}, dragging = false, ov
 
   const CardInner = (
     <div 
-      className="card glass grad-surface neon-border float-on-hover p-5 group relative overflow-hidden"
+      className="task-card card glass grad-surface neon-border float-on-hover p-5 group relative overflow-hidden"
       onClick={(e) => {
         // Only handle clicks on the card itself, not on buttons
         if (e.target === e.currentTarget) {

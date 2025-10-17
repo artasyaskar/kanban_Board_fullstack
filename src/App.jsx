@@ -65,39 +65,19 @@ export default function App() {
     })
   )
 
-  // Add touch-action CSS to the document body to prevent browser interference
+  // Light touch tweaks for mobile without disabling scrolling
   useEffect(() => {
-    // Add class to body for touch device detection
     document.body.classList.add('touch-device')
-    document.body.style.touchAction = 'none' // Changed to 'none' for better touch control
-    
-    // Add CSS variables for touch feedback
+    // Allow normal scrolling and taps
+    document.body.style.touchAction = 'manipulation'
+
     const style = document.createElement('style')
     style.textContent = `
-      .task-card {
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        user-select: none;
-        touch-action: none; /* Disable default touch actions */
-      }
-      .task-card:active {
-        transform: scale(1.02);
-        transition: transform 0.1s ease;
-      }
-      /* Prevent text selection during drag */
-      * {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-      }
-      /* Improve touch feedback */
-      [role="button"] {
-        cursor: pointer;
-      }
+      .task-card { -webkit-tap-highlight-color: transparent; }
+      .task-card:active { transform: scale(1.02); transition: transform 0.1s ease; }
     `
     document.head.appendChild(style)
-    
+
     return () => {
       document.body.classList.remove('touch-device')
       document.body.style.touchAction = ''
@@ -220,7 +200,7 @@ export default function App() {
 
   return (
     <AuthInitializer>
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="min-h-screen relative overflow-x-hidden">
         {/* Background gradient blobs */}
         <div className="pointer-events-none fixed inset-0 -z-10">
           <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full grad-accent opacity-10 blur-3xl" />
@@ -273,18 +253,7 @@ export default function App() {
                   interval: 5,
                 }}
               >
-                <div 
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    pointerEvents: 'none',
-                    zIndex: 1000,
-                    touchAction: 'none',
-                  }}
-                />
+                {/* Removed global touch overlay to preserve natural page scroll on mobile */}
                 <div className="grid grid-cols-1 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 md:gap-6"> 
                   {(columns || []).map((c) => (
                     <Column

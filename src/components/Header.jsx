@@ -32,7 +32,7 @@ export default function Header({ onAddTask, onAddColumn }) {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end max-w-full">
           <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggleDark}>
             {dark ? <Sun size={18} /> : <MoonStar size={18} />}
           </button>
@@ -44,12 +44,12 @@ export default function Header({ onAddTask, onAddColumn }) {
               </button>
             </div>
           )}
-          <button className="btn btn-ghost" onClick={onAddColumn}>
+          <button className="btn btn-ghost hidden sm:inline-flex" onClick={onAddColumn}>
             + Add Column
           </button>
-          <button className="btn btn-primary hover-neon" onClick={onAddTask}>
+          <button className="btn btn-primary hover-neon whitespace-nowrap px-2 sm:px-3 h-9 sm:h-10 text-sm sm:text-base" onClick={onAddTask}>
             <Plus size={18} />
-            <span>Add Task</span>
+            <span className="hidden sm:inline">Add Task</span>
           </button>
         </div>
       </div>
